@@ -1,8 +1,15 @@
-export function add(a: number, b: number): number {
-  return a + b;
-}
+import { Application } from "https://deno.land/x/oak/mod.ts";
+import { APP_HOST, APP_PORT } from "./config.ts";
+import loggerMiddleware from "./loggerMiddleware.ts";
+import router from "./routes.ts"
 
-// Learn more at https://docs.deno.com/runtime/manual/examples/module_metadata#concepts
-if (import.meta.main) {
-  console.log("Add 2 + 3 =", add(2, 3));
-}
+const app = new Application()
+
+app.use(loggerMiddleware)
+
+app.use(router.routes())
+app.use(router.allowedMethods())
+
+console.log(`Listening on port: ${APP_PORT}...`)
+
+await app.listen(`${APP_HOST}:${APP_PORT}`)
