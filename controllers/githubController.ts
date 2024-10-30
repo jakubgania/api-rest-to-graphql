@@ -1,7 +1,15 @@
 import { GitHubService } from "../services/githubService.ts";
+import { RouterContext } from "https://deno.land/x/oak/mod.ts";
+
 import { TEST_QUERY } from "../queries/testQuery.ts";
 import { RELEASE_QUERY } from "../queries/releaseQuery.ts";
-import { RouterContext } from "https://deno.land/x/oak/mod.ts";
+
+interface GitHubUser {
+    login: string,
+    name: string,
+    avatar_url: string,
+    type: string
+}
 
 const githubService = new GitHubService();
 
@@ -44,6 +52,38 @@ export async function getReleases(context: RouterContext<"/api/github/:owner/:re
         const data = await githubService.fetchFromGitHub<Record<string, unknown>>(RELEASE_QUERY, { owner, repo });
         context.response.status = 200
         context.response.body = data
+    } catch(error) {
+        context.response.status = 500
+        context.response.body = { error: (error as Error).message }
+    }
+}
+
+export async function getUserREST(context: RouterContext<"/api/github/users/:username">) {
+    try {
+        const username = context.params.username
+
+        if (!username) {
+            context.response.status = 400
+            context.response.body = { error: "Username is required" }
+            return
+        }
+
+        const data = await githubService.fetchFromGitHubREST<GitHubUser>("/users/" + username)
+
+        if (!data) {
+            context.response.status = 404
+            context.response.body = { error: "User not found or fetch failed" }
+        }
+
+        const userData: GitHubUser = {
+            login: data!.login,
+            name: data!.name,
+            avatar_url: data!.avatar_url,
+            type: data!.type
+        }
+
+        context.response.status = 200
+        context.response.body = userData
     } catch(error) {
         context.response.status = 500
         context.response.body = { error: (error as Error).message }
